@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpeedTest by dangkh0a</title>
+    <link
+      rel="icon"
+      href="https://i.ibb.co/3mWK7C3P/logo.png"
+      type="image/png"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  </head>
+  <body
+    class="bg-gradient-to-tr from-gray-900 to-gray-800 text-white min-h-screen"
+  >
+    <div class="flex flex-col min-h-screen">
+      <header class="bg-gray-800 shadow sticky top-0 z-10">
+        <div
+          class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center"
+        >
+          <h1 class="text-2xl font-bold text-primary">
+            <i class="fas fa-bolt mr-2"></i>speedTest
+          </h1>
+          <span class="text-sm text-gray-300">Fast • Simple • Accurate</span>
+        </div>
+      </header>
+
+      <main class="flex-1 flex flex-col items-center justify-center px-4 py-12">
+        <div
+          id="loading"
+          class="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-90 z-50 hidden"
+        >
+          <svg
+            class="w-16 h-16 animate-spin text-primary"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span class="mt-4 text-lg font-medium text-gray-200"
+            >Đang phân tích tốc độ mạng…</span
+          >
+        </div>
+
+        <div
+          class="w-full max-w-4xl bg-gray-800 rounded-3xl shadow-2xl p-10 border border-gray-700 relative overflow-hidden"
+        >
+          <div
+            class="absolute -top-10 -right-10 w-40 h-40 bg-accent opacity-10 rounded-full blur-3xl"
+          ></div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div class="space-y-2">
+              <i class="fas fa-wave-square text-4xl text-primary"></i>
+              <p class="text-sm text-gray-400">Độ trễ (Ping)</p>
+              <p id="ping" class="text-3xl font-bold">-- ms</p>
+            </div>
+            <div class="space-y-2">
+              <i class="fas fa-download text-4xl text-primary"></i>
+              <p class="text-sm text-gray-400">Tốc độ tải xuống</p>
+              <p id="download" class="text-3xl font-bold">-- Mbps</p>
+            </div>
+            <div class="space-y-2">
+              <i class="fas fa-upload text-4xl text-primary"></i>
+              <p class="text-sm text-gray-400">Tốc độ tải lên</p>
+              <p id="upload" class="text-3xl font-bold">-- Mbps</p>
+            </div>
+          </div>
+
+          <div class="flex justify-center mt-10">
+            <button
+              id="startBtn"
+              class="w-24 h-24 rounded-full bg-primary hover:bg-indigo-600 flex items-center justify-center text-white text-3xl shadow-lg transition transform hover:scale-110"
+            >
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Thông tin mạng -->
+        <div
+          id="networkBox"
+          class="w-full max-w-4xl mt-8 bg-gray-800 rounded-3xl shadow-xl p-6 border border-gray-700 text-sm hidden"
+        >
+          <h2 class="text-xl font-semibold text-accent mb-4">
+            <i class="fas fa-network-wired mr-2"></i>Thông tin mạng
+          </h2>
+          <div class="grid md:grid-cols-2 gap-4 text-gray-300" id="networkInfo">
+            <p><strong>IPv4:</strong> <span id="ipv4">--</span></p>
+            <p><strong>IPv6:</strong> <span id="ipv6">--</span></p>
+            <p><strong>Link-local IPv6:</strong> <span id="llipv6">--</span></p>
+            <p><strong>Subnet Mask:</strong> <span id="subnet">--</span></p>
+            <p>
+              <strong>Default Gateway:</strong> <span id="gateway">--</span>
+            </p>
+            <p>
+              <strong>Temporary IPv6:</strong> <span id="tempipv6">--</span>
+            </p>
+            <p><strong>DNS Servers:</strong> <span id="dns">--</span></p>
+          </div>
+        </div>
+        <div
+          class="w-full max-w-4xl mt-8 bg-gray-800 rounded-3xl p-6 text-sm hidden"
+          id="publicBox"
+        >
+          <h2 class="text-xl font-semibold text-accent mb-4">
+            <i class="fas fa-globe mr-2"></i>Thông tin IP Công Cộng
+          </h2>
+          <div class="grid md:grid-cols-2 gap-4 text-gray-300" id="publicInfo">
+            <p><strong>IP:</strong> <span id="wanip">--</span></p>
+            <p><strong>ISP:</strong> <span id="isp">--</span></p>
+            <p><strong>ASN:</strong> <span id="asn">--</span></p>
+            <p><strong>Tên miền:</strong> <span id="host">--</span></p>
+            <p><strong>Tổ chức:</strong> <span id="org">--</span></p>
+            <p><strong>Vị trí:</strong> <span id="location">--</span></p>
+          </div>
+        </div>
+      </main>
+
+      <footer class="text-center text-sm text-gray-500 py-6">
+        <p>
+          © 2025 SpeedTest by dangkh0a — Built with Flask, Tailwind CSS & Font
+          Awesome
+        </p>
+      </footer>
+    </div>
+
+    <audio id="doneSound" preload="auto">
+      <source src="/static/doneSound.mp3" type="audio/mpeg" />
+    </audio>
+
+    <script>
+      const loading = document.getElementById("loading");
+      const pingEl = document.getElementById("ping");
+      const downloadEl = document.getElementById("download");
+      const uploadEl = document.getElementById("upload");
+      const startBtn = document.getElementById("startBtn");
+      const doneSound = document.getElementById("doneSound");
+      const networkBox = document.getElementById("networkBox");
+
+      async function loadNetworkInfo() {
+        try {
+          const res = await fetch("/api/networkinfo");
+          const data = await res.json();
+
+          if (data["IPv4 Address"])
+            document.getElementById("ipv4").textContent = data["IPv4 Address"];
+          if (data["IPv6 Address"])
+            document.getElementById("ipv6").textContent = data["IPv6 Address"];
+          if (data["Link-local IPv6"])
+            document.getElementById("llipv6").textContent =
+              data["Link-local IPv6"];
+          if (data["Subnet Mask"])
+            document.getElementById("subnet").textContent = data["Subnet Mask"];
+          if (data["Default Gateway"])
+            document.getElementById("gateway").textContent =
+              data["Default Gateway"];
+          if (data["Temporary IPv6 Address"])
+            document.getElementById("tempipv6").textContent =
+              data["Temporary IPv6 Address"];
+          if (data["DNS Servers"])
+            document.getElementById("dns").textContent =
+              data["DNS Servers"].join(", ");
+          networkBox.classList.remove("hidden");
+        } catch (err) {
+          console.error("Lỗi khi lấy thông tin mạng:", err);
+        }
+      }
+      async function loadPublicIP() {
+        try {
+          const res = await fetch("/api/publicip");
+          const data = await res.json();
+
+          document.getElementById("wanip").textContent = data.ip || "--";
+          document.getElementById("isp").textContent = data.isp || "--";
+          document.getElementById("asn").textContent = data.asn || "--";
+          document.getElementById("host").textContent = data.hostname || "--";
+          document.getElementById("org").textContent = data.org || "--";
+          document.getElementById("location").textContent =
+            (data.city || "") +
+            ", " +
+            (data.region || "") +
+            ", " +
+            (data.country || "");
+
+          document.getElementById("publicBox").classList.remove("hidden");
+        } catch (err) {
+          console.error("Không thể tải IP công cộng:", err);
+        }
+      }
+
+      startBtn.addEventListener("click", async () => {
+        loading.classList.remove("hidden");
+        startBtn.classList.add("animate-spin");
+        loadNetworkInfo();
+        loadPublicIP();
+        try {
+          const res = await fetch("/api/speedtest");
+          const data = await res.json();
+
+          if (data.ping && data.download && data.upload) {
+            pingEl.textContent = data.ping.toFixed(2) + " ms";
+            downloadEl.textContent = data.download.toFixed(2) + " Mbps";
+            uploadEl.textContent = data.upload.toFixed(2) + " Mbps";
+
+            startBtn.classList.add("animate-shake");
+            doneSound.play().catch(() => {});
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
+            loadNetworkInfo();
+          } else if (data.error) {
+            alert("Lỗi từ máy chủ: " + data.error);
+          } else {
+            alert("Không nhận được dữ liệu hợp lệ.");
+          }
+        } catch (error) {
+          alert("Lỗi kết nối đến máy chủ: " + error);
+        } finally {
+          loading.classList.add("hidden");
+          startBtn.classList.remove("animate-spin");
+        }
+      });
+    </script>
+  </body>
+</html>

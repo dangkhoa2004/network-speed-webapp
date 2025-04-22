@@ -161,29 +161,52 @@
           const res = await fetch("/api/networkinfo");
           const data = await res.json();
 
-          if (data["IPv4 Address"])
-            document.getElementById("ipv4").textContent = data["IPv4 Address"];
-          if (data["IPv6 Address"])
-            document.getElementById("ipv6").textContent = data["IPv6 Address"];
-          if (data["Link-local IPv6"])
-            document.getElementById("llipv6").textContent =
-              data["Link-local IPv6"];
-          if (data["Subnet Mask"])
-            document.getElementById("subnet").textContent = data["Subnet Mask"];
-          if (data["Default Gateway"])
-            document.getElementById("gateway").textContent =
-              data["Default Gateway"];
-          if (data["Temporary IPv6 Address"])
-            document.getElementById("tempipv6").textContent =
-              data["Temporary IPv6 Address"];
-          if (data["DNS Servers"])
-            document.getElementById("dns").textContent =
-              data["DNS Servers"].join(", ");
-          networkBox.classList.remove("hidden");
+          const container = document.getElementById("networkInfo");
+          container.innerHTML = ""; // Xóa nội dung cũ
+
+          // Duyệt qua từng interface
+          data.interfaces.forEach((iface) => {
+            const name = iface.interface;
+            const ipv4 = iface.ipv4 || "--";
+            const netmask = iface.netmask || "--";
+            const ipv6 = iface.ipv6.length ? iface.ipv6.join(", ") : "--";
+
+            container.innerHTML += `
+              <div class="col-span-1">
+                <p><strong>Interface:</strong> ${name}</p>
+                <p><strong>IPv4:</strong> ${ipv4}</p>
+                <p><strong>Subnet Mask:</strong> ${netmask}</p>
+                <p><strong>IPv6:</strong> ${ipv6}</p>
+              </div>
+            `;
+          });
+
+          // Default Gateway
+          if (data.default_gateway) {
+            container.innerHTML += `
+              <div class="col-span-1">
+                <p><strong>Default Gateway:</strong> ${data.default_gateway}</p>
+              </div>
+            `;
+          }
+
+          // DNS
+          if (data.dns_servers) {
+            container.innerHTML += `
+              <div class="col-span-1">
+                <p><strong>DNS Servers:</strong> ${data.dns_servers.join(
+                  ", "
+                )}</p>
+              </div>
+            `;
+          }
+
+          document.getElementById("networkBox").classList.remove("hidden");
         } catch (err) {
           console.error("Lỗi khi lấy thông tin mạng:", err);
         }
       }
+
       async function loadPublicIP() {
         try {
           const res = await fetch("/api/publicip");

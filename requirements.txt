@@ -6,3 +6,5 @@ beautifulsoup4
 lxml
 python-whois
 speedtest-cli
+psutil
+requests

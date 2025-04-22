@@ -203,27 +203,31 @@
 
           document.getElementById("publicBox").classList.remove("hidden");
         } catch (err) {
-          console.error("Không thể tải IP công cộng:", err);
+          console.error("Không thể lấy IP công cộng:", err);
         }
       }
-
       startBtn.addEventListener("click", async () => {
         loading.classList.remove("hidden");
         startBtn.classList.add("animate-spin");
         loadNetworkInfo();
         loadPublicIP();
+
         try {
           const res = await fetch("/api/speedtest");
           const text = await res.text();
+
           try {
             const data = JSON.parse(text);
+
             if (data.ping && data.download && data.upload) {
               pingEl.textContent = data.ping.toFixed(2) + " ms";
               downloadEl.textContent = data.download.toFixed(2) + " Mbps";
               uploadEl.textContent = data.upload.toFixed(2) + " Mbps";
+
               startBtn.classList.add("animate-shake");
               doneSound.play().catch(() => {});
               confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
               loadNetworkInfo();
             } else if (data.error) {
               console.error("Lỗi từ máy chủ: " + data.error);
@@ -232,22 +236,6 @@
             }
           } catch (e) {
             console.error("Phản hồi không hợp lệ từ API:", text);
-            console.error("API trả về HTML thay vì JSON:\n" + text);
-          }
-          if (data.ping && data.download && data.upload) {
-            pingEl.textContent = data.ping.toFixed(2) + " ms";
-            downloadEl.textContent = data.download.toFixed(2) + " Mbps";
-            uploadEl.textContent = data.upload.toFixed(2) + " Mbps";
-
-            startBtn.classList.add("animate-shake");
-            doneSound.play().catch(() => {});
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-
-            loadNetworkInfo();
-          } else if (data.error) {
-            console.error("Lỗi từ máy chủ: " + data.error);
-          } else {
-            console.error("Không nhận được dữ liệu hợp lệ.");
           }
         } catch (error) {
           console.error("Lỗi kết nối đến máy chủ: " + error);

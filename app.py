@@ -14,11 +14,29 @@ app.static_folder = 'static'
 def home():
     return render_template("index.html")
 
+from flask import request
+
 @app.route("/api/publicip")
 def get_public_ip_info():
     try:
-        res = requests.get("http://ip-api.com/json/")
+        # IP mặc định từ ip-api (dành cho local)
+        ip_api_url = "http://ip-api.com/json/"
+
+        # Kiểm tra IP truy cập
+        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+
+        # Nếu không phải local (localhost hoặc IP nội bộ) thì dùng IP thật
+        if not (
+            client_ip.startswith("127.") or
+            client_ip.startswith("192.168.") or
+            client_ip.startswith("10.") or
+            client_ip == "localhost"
+        ):
+            ip_api_url = f"http://ip-api.com/json/{client_ip}"
+
+        res = requests.get(ip_api_url)
         data = res.json()
+
         return jsonify({
             "ip": data.get("query"),
             "isp": data.get("isp"),
@@ -31,6 +49,7 @@ def get_public_ip_info():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/speedtest")
 def speed_test():

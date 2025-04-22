@@ -1,9 +1,11 @@
 from flask import Flask, render_template, jsonify
-import speedtest
 import time
 import socket
 import psutil
 import os
+import subprocess
+import json
+import requests
 
 app = Flask(__name__)
 app.static_folder = 'static'
@@ -11,7 +13,6 @@ app.static_folder = 'static'
 @app.route("/")
 def home():
     return render_template("index.html")
-import requests
 
 @app.route("/api/publicip")
 def get_public_ip_info():
@@ -35,21 +36,20 @@ def get_public_ip_info():
 def speed_test():
     start_time = time.time()
     try:
-        st = speedtest.Speedtest(secure=True)
-        download = st.download() / 1_000_000
-        upload = st.upload() / 1_000_000
-        ping = st.results.ping
+        result = subprocess.run(["speedtest-cli", "--json"], capture_output=True, text=True)
+        if result.returncode != 0:
+            return jsonify({"error": "Không thể thực hiện speedtest."}), 500
+
+        data = json.loads(result.stdout)
         total_time = time.time() - start_time
         return jsonify({
-            "ping": ping,
-            "download": download,
-            "upload": upload,
+            "ping": data.get("ping"),
+            "download": data.get("download", 0) / 1_000_000,
+            "upload": data.get("upload", 0) / 1_000_000,
             "test_duration": total_time
         })
-    except speedtest.SpeedtestException as e:
-        return jsonify({"error": f"Lỗi Speedtest: {e}"}), 500
     except Exception as e:
-        return jsonify({"error": f"Lỗi không xác định: {e}"}), 500
+        return jsonify({"error": f"Lỗi không xác định: {str(e)}"}), 500
 
 @app.route("/api/networkinfo")
 def network_info():
@@ -63,13 +63,12 @@ def network_info():
                 elif addr.family == socket.AF_INET6:
                     if addr.address.startswith("fe80"):
                         info["Link-local IPv6"] = addr.address
-                    elif "temporary" in str(addr):  # Windows không có tag rõ ràng
+                    elif "temporary" in str(addr):
                         info["Temporary IPv6"] = addr.address
                     else:
                         info["IPv6"] = addr.address
 
-        net_io = psutil.net_if_stats()
-        interfaces = list(net_io.keys())
+        interfaces = list(psutil.net_if_stats().keys())
         if interfaces:
             stats = psutil.net_if_addrs().get(interfaces[0], [])
             for addr in stats:
@@ -78,7 +77,7 @@ def network_info():
                     break
 
         dns_servers = []
-        if os.name != 'nt':  # Trên Linux/macOS
+        if os.name != 'nt':  # Linux/macOS
             try:
                 with open("/etc/resolv.conf") as f:
                     for line in f:

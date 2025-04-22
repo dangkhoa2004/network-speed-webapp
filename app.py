@@ -10,31 +10,20 @@ import requests
 app = Flask(__name__)
 app.static_folder = 'static'
 
+# DEBUG mode nếu chạy local
+app.config['DEBUG'] = os.environ.get("DEBUG", "false").lower() == "true" or "localhost" in os.environ.get("HOST", "")
+
 @app.route("/")
 def home():
     return render_template("index.html")
-
-def get_network_info():
-    info = []
-    for interface, addrs in psutil.net_if_addrs().items():
-        for addr in addrs:
-            if addr.family == socket.AF_INET:  # IPv4
-                info.append({
-                    "interface": interface,
-                    "ip": addr.address,
-                    "netmask": addr.netmask,
-                    "broadcast": addr.broadcast,
-                })
-    return info
-
-for i in get_network_info():
-    print(i)
 
 @app.route("/api/publicip")
 def get_public_ip_info():
     try:
         ip_api_url = "http://ip-api.com/json/"
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+
+        # Nếu IP không phải private/local thì truy vấn chi tiết
         if not (
             client_ip.startswith("127.") or
             client_ip.startswith("192.168.") or
@@ -78,9 +67,16 @@ def speed_test():
         })
     except Exception as e:
         return jsonify({"error": f"Lỗi không xác định: {str(e)}"}), 500
+
 @app.route("/api/networkinfo")
 def network_info():
     try:
+        # Chỉ cho phép hiển thị thông tin mạng nếu chạy local/debug
+        if not app.config['DEBUG'] and not request.remote_addr.startswith("127."):
+            return jsonify({
+                "warning": "Thông tin mạng nội bộ không khả dụng trên môi trường triển khai."
+            }), 200
+
         info = {
             "interfaces": []
         }
@@ -94,32 +90,28 @@ def network_info():
             }
 
             for addr in addrs:
-                # IPv4
                 if addr.family == socket.AF_INET:
                     ip = addr.address
-                    if ip.startswith(("127.", "169.", "26.")):  # loại IP loopback, APIPA, VPN
+                    if ip.startswith(("127.", "169.", "26.")):
                         continue
                     iface["ipv4"] = ip
                     iface["netmask"] = addr.netmask
 
-                # IPv6
                 elif addr.family == socket.AF_INET6:
                     ipv6 = addr.address
-                    if ipv6.startswith("fe80"):  # link-local IPv6
-                        continue
-                    iface["ipv6"].append(ipv6)
+                    if not ipv6.startswith("fe80"):  # bỏ link-local nếu không cần
+                        iface["ipv6"].append(ipv6)
 
-            # Chỉ thêm nếu có địa chỉ hợp lệ
             if iface["ipv4"] or iface["ipv6"]:
                 info["interfaces"].append(iface)
 
-        # Tìm Default Gateway dựa trên IP đầu tiên
+        # Default Gateway
         for iface in info["interfaces"]:
             if iface["ipv4"]:
                 info["default_gateway"] = ".".join(iface["ipv4"].split(".")[:-1] + ["1"])
                 break
 
-        # DNS fallback
+        # DNS Servers
         if os.name != 'nt':
             dns_servers = []
             try:
@@ -138,5 +130,8 @@ def network_info():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    # Tự động đặt debug mode nếu chạy local
+    is_local = "localhost" in request.host if request else True
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=app.config['DEBUG'])
